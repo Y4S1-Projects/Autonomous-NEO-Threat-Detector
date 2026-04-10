@@ -1,7 +1,14 @@
+# Python Environments
 venv/
 .env
 __pycache__/
 *.pyc
+
+# Local Data & Logs
 data/output_maps/*.html
 data/vector_db/
 logs/*.log
+
+# IDE Files
+.vscode/
+.idea/

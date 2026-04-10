@@ -1,7 +1,14 @@
+# Core Orchestration
 langgraph
 langchain-community
 langchain-core
-requests
 pydantic
+
+# Agent 1: API Tooling
+requests
+
+# Agent 3: RAG & Vector Database
 chromadb
+
+# Agent 4: Geospatial Frontend
 folium
