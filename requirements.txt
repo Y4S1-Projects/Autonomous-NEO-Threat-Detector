@@ -1,14 +1,19 @@
-# Core Orchestration
+# ═══════════════════════════════════════════════════════════
+# AstroGuard MAS — Python Dependencies
+# ═══════════════════════════════════════════════════════════
+
+# Core Orchestration (LangGraph Pipeline)
 langgraph
 langchain-community
 langchain-core
+langchain-ollama
 pydantic
 
-# Agent 1: API Tooling
+# Agent 1: NASA API Tooling
 requests
 
-# Agent 3: RAG & Vector Database
+# Agent 3: RAG & Local Vector Database
 chromadb
 
-# Agent 4: Geospatial Frontend
+# Agent 4: Geospatial Visualization
 folium
