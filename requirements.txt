@@ -1,0 +1,7 @@
+langgraph
+langchain-community
+langchain-core
+requests
+pydantic
+chromadb
+folium
