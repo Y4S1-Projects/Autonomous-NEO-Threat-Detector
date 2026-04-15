@@ -92,6 +92,7 @@ class NEOState(TypedDict):
 
     # ── Agent 4: Geospatial Synthesizer ─────────────────────────────────
     final_map_path: Optional[str]
+    estimated_affected_population: Optional[int]
 
     # ── Cross-Cutting Observability ─────────────────────────────────────
     errors: List[str]

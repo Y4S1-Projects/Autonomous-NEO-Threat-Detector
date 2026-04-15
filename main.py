@@ -40,6 +40,7 @@ if PROJECT_ROOT not in sys.path:
 # This makes NASA_API_KEY (and any future keys) available to all agents
 # via os.getenv() without requiring manual export in the shell.
 from dotenv import load_dotenv  # noqa: E402
+
 load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
 
 from langgraph.graph import StateGraph, END  # noqa: E402
@@ -247,6 +248,7 @@ def run_pipeline(target_date: str) -> Dict[str, Any]:
         "blast_radius_km": None,
         "historical_match_context": None,
         "final_map_path": None,
+        "estimated_affected_population": None,
         "errors": [],
         "execution_metadata": {
             "pipeline_start": datetime.now(timezone.utc).isoformat(),

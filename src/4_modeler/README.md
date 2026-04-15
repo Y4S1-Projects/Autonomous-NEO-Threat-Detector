@@ -1,71 +1,133 @@
-# Module 4: The Geospatial Synthesizer 🌍
+# Module 4 — Geospatial Synthesizer (Agent 4)
 
-**Owner:** Member 4 (Frontend & Geospatial Modeler)  
-**Role:** Transform technical pipeline data into an interactive visual artifact
+> **Advanced impact simulation engine with population analysis, temporal animation, and self-correcting behavior.**
+
+## Overview
+
+The Geospatial Synthesizer is the final agent in the AstroGuard pipeline. It consumes the accumulated threat intelligence from all upstream agents and produces an interactive HTML map simulating a theoretical asteroid impact.
+
+This module goes beyond simple visualization — it implements **three advanced capabilities** that demonstrate true agentic reasoning:
+
+| Feature                          | What It Does                                                    | Why It Matters                     |
+| -------------------------------- | --------------------------------------------------------------- | ---------------------------------- |
+| **Population Impact Estimation** | Haversine-based proximity analysis against 200+ world cities    | Data synthesis, not just rendering |
+| **Temporal Blast Animation**     | Expanding shockwave with playable timeline (TimestampedGeoJson) | Military-grade visual simulation   |
+| **Self-Correction Loop**         | Validates HTML output + retries on failure (max 2 retries)      | Self-Reflective MAS Architecture   |
 
 ---
-
-## Objective
-
-The Geospatial Synthesizer is the final agent in the AstroGuard pipeline. It consumes all upstream data — NASA telemetry, physics calculations, and RAG-retrieved historical context — and produces a professional, interactive HTML map that serves as the pipeline's visual output.
 
 ## Architecture
 
 ```
-State Input:                          Tool Output:
-  blast_radius_km  ──┐
-  threat_level     ──┤── generate_impact_map() ──→ simulation_latest.html
-  historical_context ┤
-  asteroid_name    ──┘
+State Input (from Agents 1-3)
+    |
+    ├── blast_radius_km
+    ├── threat_level
+    ├── historical_match_context
+    └── asteroid_name
+    |
+    v
++-------------------------------+
+|   generate_impact_map()       |
+|   ├── _select_impact_coordinate()      |
+|   ├── _estimate_affected_population()  |  <-- Haversine + CSV
+|   ├── _build_blast_animation_geojson() |  <-- TimestampedGeoJson
+|   ├── _build_popup_html()              |  <-- With population data
+|   ├── _build_population_hud()          |  <-- Floating HUD
+|   └── _build_legend_html()             |
++-------------------------------+
+    |
+    v
++-------------------------------+
+|   Self-Correction Loop        |
+|   ├── _validate_map_output()  |  <-- Read HTML, verify content
+|   ├── Retry if data missing   |
+|   └── Max 2 retries           |
++-------------------------------+
+    |
+    v
++-------------------------------+
+|   LLM Verification            |
+|   └── Qwen 2.5 confirms data |  <-- Including population stats
++-------------------------------+
+    |
+    v
+State Output:
+    ├── final_map_path
+    └── estimated_affected_population
 ```
 
-## Deliverables
+---
 
-### 1. `tools.py` — `generate_impact_map()`
+## Key Algorithms
 
-**Purpose:** Render an interactive Folium/Leaflet map with:
+### Haversine Formula
 
-- **Multiple tile layers** — Dark Mode, Street Map, Light Mode with layer switcher
-- **Graduated blast zones** — Kill Zone (30%), Damage Zone (70%), Shockwave Zone (100%)
-- **Color-coded styling** — Amber (LOW), Deep Orange (MODERATE), Dark Red (HIGH)
-- **Rich HTML popup** — Structured threat intelligence with historical context
-- **Floating legend** — Threat classification scale with active indicator
-- **Title overlay** — Asteroid designation and simulation label
-- **MiniMap plugin** — Navigation context for zoomed views
+Used to calculate the great-circle distance between the impact site and each city in the dataset:
 
-**Type Hinting:** Full Python type annotations on all functions including `Optional`, `Dict`, `Tuple`.  
-**Error Handling:** Input validation, type coercion, negative value clamping, graceful error strings.  
-**Docstrings:** Comprehensive Google-style docstrings with Args, Returns, and Example sections.
+```
+a = sin²(Δlat/2) + cos(lat1) × cos(lat2) × sin²(Δlon/2)
+c = 2 × atan2(√a, √(1-a))
+d = R × c    (R = 6,371 km)
+```
 
-### 2. `agent.py` — Geospatial Synthesizer Agent
+**Validated**: London to Paris = 343.6 km (actual: ~344 km)
 
-**System Prompt:**
+### Population Estimation Pipeline
 
-> "You are a geospatial rendering verification engine for the AstroGuard planetary defense system. You MUST NOT invent, estimate, or hallucinate any scientific data. Your ONLY job is to confirm that the rendering tool produced a valid output file and provide a brief, factual summary."
+1. Load `data/worldcities_top500.csv` (200+ cities with lat/lon/population)
+2. For each city, compute Haversine distance to impact site
+3. If distance ≤ blast_radius_km → add to affected list
+4. Sum populations and sort by proximity
+5. Display in popup, legend, and floating HUD
 
-**LLM Integration:**
+### Temporal Animation
 
-- Uses Ollama (phi3) for a post-rendering **verification step**
-- The LLM does NOT generate the map — it validates the tool's output
-- Graceful fallback if Ollama is unavailable
+- Generates 10 GeoJSON frames representing expanding blast wave
+- Each frame is a polygon circle at 5% → 100% of blast radius
+- Uses Folium's `TimestampedGeoJson` plugin for playable timeline
+- Animation auto-plays on map load with loop control
 
-**Observability:**
+---
 
-- Logs agent activation, state extraction, tool execution, and completion
-- Records execution metadata (timestamps, duration, status) in the global state
+## Files
 
-### 3. `test.py` — Comprehensive Hybrid Test Suite (18 test cases)
+| File       | Lines | Description                                                               |
+| ---------- | ----- | ------------------------------------------------------------------------- |
+| `tools.py` | ~700  | Core tool with Haversine, population estimation, animation, map rendering |
+| `agent.py` | ~280  | LangGraph node with self-correction loop and LLM verification             |
+| `test.py`  | ~590  | 35 test cases across 9 test classes                                       |
 
-| Category           | Tests | Description                                                  |
-| ------------------ | ----- | ------------------------------------------------------------ |
-| Happy Path         | 3     | All three threat levels (LOW, MODERATE, HIGH)                |
-| Edge Cases         | 5     | Negative/zero radius, invalid types, unknown threat levels   |
-| Content Validation | 3     | HTML structure, data embedding, Leaflet presence             |
-| Helper Functions   | 4     | Zoom scaling, style lookup, coordinate selection, popup HTML |
-| LLM-as-a-Judge     | 2     | Accuracy evaluation + mismatch detection                     |
+---
 
-## Challenges Faced
+## Test Suite
 
-1. **Numeric directory names** — Python doesn't allow `import src.4_modeler`, requiring `importlib` for dynamic imports
-2. **Ollama availability** — Not all team machines have Ollama running, so all LLM interactions use graceful fallbacks
-3. **Map rendering consistency** — Ocean coordinates are randomized for realism, requiring zoom-level auto-calculation
+```bash
+python src/4_modeler/test.py
+```
+
+| Category               | Tests  | Description                                           |
+| ---------------------- | ------ | ----------------------------------------------------- |
+| Happy Path             | 3      | LOW, MODERATE, HIGH threat level maps                 |
+| Edge Cases             | 7      | Invalid/extreme inputs, graceful degradation          |
+| Content Validation     | 4      | HTML structure, animation data, threat embedding      |
+| Helper Functions       | 4      | Zoom, styles, coordinates, popup builder              |
+| **Population Impact**  | 6      | Haversine formula, city proximity, sorting            |
+| **Temporal Animation** | 4      | GeoJSON structure, frames, timestamps, geometry       |
+| **Self-Correction**    | 3      | File validation, missing file detection, wrong threat |
+| **Population HUD**     | 2      | Empty/populated HUD rendering                         |
+| **LLM-as-a-Judge**     | 2      | Accuracy evaluation, mismatch detection               |
+| **Total**              | **35** | All passing                                           |
+
+---
+
+## Dependencies
+
+- `folium` — Map rendering and plugins
+- `folium.plugins.TimestampedGeoJson` — Temporal animation
+- `folium.plugins.MiniMap` — Navigation minimap
+- `langchain-ollama` — LLM verification (graceful fallback)
+
+## Data Files
+
+- `data/worldcities_top500.csv` — 200+ world cities with lat, lon, population (public domain)
