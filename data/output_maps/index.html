@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AstroGuard - Impact Simulation Dashboard</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- MiniMap CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-minimap/3.6.1/Control.MiniMap.min.css" />
+
+    <!-- TimeDimension CSS for Timeline/Animation -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-timedimension@1.1.1/dist/leaflet.timedimension.control.min.css" />
+
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+            background-color: #0f0f1b;
+            cursor: crosshair; /* Encourages clicking */
+        }
+
+        #map {
+            width: 100%;
+            height: 100vh;
+            z-index: 1;
+        }
+
+        /* Top Overlay - Title and Dropdown */
+        .top-overlay {
+            position: fixed;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: rgba(15, 15, 25, 0.95);
+            color: #ECEFF1;
+            padding: 16px 24px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            text-align: center;
+            min-width: 400px;
+        }
+
+        .title {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            letter-spacing: 2px;
+            color: #ECEFF1; 
+        }
+
+        .history-selector {
+            width: 100%;
+            padding: 8px;
+            background: #0d1117;
+            color: #fff;
+            border: 1px solid #444;
+            border-radius: 4px;
+            font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+            font-size: 13px;
+            cursor: pointer;
+            margin-bottom: 12px;
+        }
+        .history-selector:focus {
+            outline: none;
+            border-color: #FFC107;
+        }
+
+        /* Dual-Scale UI panels */
+        .metric-panel {
+            padding: 10px 14px;
+            background: rgba(0, 0, 0, 0.6);
+            text-align: left;
+            margin-bottom: 8px;
+            border-radius: 4px;
+        }
+        .metric-label {
+            margin: 0 0 2px 0;
+            font-size: 10px;
+            color: #90A4AE;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .metric-value {
+            margin: 0;
+            font-size: 15px;
+            font-weight: bold;
+        }
+        .metric-desc {
+            margin: 3px 0 0 0;
+            font-size: 10px;
+            color: #607D8B;
+            font-style: italic;
+        }
+
+        .border-absolute { border-left: 4px solid #FFC107; }
+        .text-absolute { color: #FFC107; }
+
+        .border-relative { border-left: 4px solid #FF1744; }
+        .text-relative { color: #FF1744; }
+
+        @keyframes blinker {
+            50% { opacity: 0.3; }
+        }
+        .pulse-text {
+            margin-top: 12px;
+            color: #4CAF50;
+            font-size: 13px;
+            font-weight: bold;
+            animation: blinker 2s linear infinite;
+        }
+
+        /* HUD - Population */
+        .hud-overlay {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(27, 0, 0, 0.92);
+            color: #ECEFF1;
+            padding: 14px 18px;
+            border-radius: 10px;
+            box-shadow: 0 4px 16px rgba(183, 28, 28, 0.4);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(183, 28, 28, 0.6);
+            min-width: 220px;
+            display: none;
+        }
+        
+        .hud-title {
+            margin: 0 0 4px 0;
+            font-size: 11px;
+            color: #FF5252;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .hud-value {
+            margin: 0;
+            font-size: 26px;
+            font-weight: bold;
+            color: #FF1744;
+        }
+        .hud-subtitle {
+            margin: 0;
+            font-size: 11px;
+            color: #B0BEC5;
+        }
+        .hud-cities {
+            margin-top: 8px;
+            border-top: 1px solid #451b1b;
+            padding-top: 6px;
+        }
+
+        /* Bottom Legend */
+        .legend-overlay {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            z-index: 1000;
+            background: rgba(20, 20, 40, 0.92);
+            color: #ECEFF1;
+            padding: 14px 18px;
+            border-radius: 10px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* CORS Error Banner */
+        #cors-error {
+            display: none;
+            position: fixed;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(183, 28, 28, 0.95);
+            color: white;
+            padding: 20px 40px;
+            border-radius: 10px;
+            z-index: 2000;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            border: 2px solid #FF5252;
+            max-width: 500px;
+        }
+        #cors-error h2 { margin-top: 0; }
+        #cors-error code { background: rgba(0,0,0,0.5); padding: 4px 8px; border-radius: 4px;}
+
+    </style>
+</head>
+<body>
+
+    <div id="cors-error">
+        <h2>⚠️ Local File Security Restriction</h2>
+        <p>Browsers block reading local JSON files directly.</p>
+        <p>To view this dashboard, please start a local web server:</p>
+        <code>python -m http.server</code>
+        <p>Then open: <a href="http://localhost:8000" style="color:#FFA000;">http://localhost:8000</a></p>
+    </div>
+
+    <!-- UI Overlay container -->
+    <div class="top-overlay">
+        <h2 class="title" id="ui-title">☄️ ASTROGUARD — WHAT-IF SIMULATOR</h2>
+        
+        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <select id="date-selector" class="history-selector" style="margin-bottom: 0;" disabled>
+                <option>Loading dates...</option>
+            </select>
+            <select id="asteroid-selector" class="history-selector" style="margin-bottom: 0;" disabled>
+                <option>Loading targets...</option>
+            </select>
+        </div>
+
+        <!-- Metric 1: Absolute Energy -->
+        <div class="metric-panel border-absolute">
+            <p class="metric-label">Metric 1: Absolute Energy Threat (The Asteroid)</p>
+            <p class="metric-value text-absolute" id="ui-absolute-threat">LOADING...</p>
+            <p class="metric-desc" id="ui-absolute-desc">Scientific energy scale based on physical size and velocity.</p>
+        </div>
+
+        <!-- Metric 2: Relative Human Impact -->
+        <div class="metric-panel border-relative">
+            <p class="metric-label">Metric 2: Relative Human Impact (The Target)</p>
+            <p class="metric-value text-relative" id="ui-relative-impact">AWAITING TARGET LOCK...</p>
+            <p class="metric-desc" id="ui-relative-desc">Casualty estimates based on populated areas within the selected blast radius.</p>
+        </div>
+
+        <p class="pulse-text" id="ui-prompt">
+            📍 Click ANYWHERE on the map to run a simulation at that target!
+        </p>
+    </div>
+
+    <!-- HUD Population -->
+    <div class="hud-overlay" id="ui-hud">
+        <h4 class="hud-title">Population at Risk</h4>
+        <p class="hud-value" id="hud-total">0</p>
+        <p class="hud-subtitle" id="hud-cities-count">0 cities affected</p>
+        <div class="hud-cities" id="hud-cities-list"></div>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend-overlay" id="ui-legend">
+        <!-- Injected by app.js -->
+    </div>
+
+    <!-- Leaflet Map Container -->
+    <div id="map"></div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-minimap/3.6.1/Control.MiniMap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/iso8601-js-period@0.2.1/iso8601.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-timedimension@1.1.1/dist/leaflet.timedimension.min.js"></script>
+    
+    <!-- Application Logic -->
+    <script src="app.js"></script>
+
+</body>
+</html>

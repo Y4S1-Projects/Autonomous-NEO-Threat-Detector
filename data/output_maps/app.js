@@ -59,6 +59,19 @@ function initMap() {
         "Street Map": streetLayer
     }, {}, { position: 'topright' }).addTo(map);
 
+    // 2.5 NASA SEDAC Population Web Map Service (WMS)
+    // Providing a raster overlay so users can visually aim for high-density "hot zones"
+    const sedacWmsUrl = "https://sedac.ciesin.columbia.edu/geoserver/wms";
+    const popDensityLayer = L.tileLayer.wms(sedacWmsUrl, {
+        layers: 'gpw-v4:gpw-v4-population-density-rev11_2020',
+        format: 'image/png',
+        transparent: true,
+        opacity: 0.5,
+        attribution: 'NASA SEDAC Population Density'
+    }).addTo(map); // Default active so users see it immediately
+
+    layersControl.addOverlay(popDensityLayer, "🔥 NASA Global Population Heatmap");
+
     // MiniMap
     minimapControl = new L.Control.MiniMap(
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'),
@@ -100,25 +113,67 @@ function fetchData() {
 }
 
 function populateDropdown() {
-    const selector = document.getElementById('history-selector');
-    selector.innerHTML = ''; // clear
-
-    // Loop backward to show newest first
-    for (let i = simulations.length - 1; i >= 0; i--) {
-        const sim = simulations[i];
-        const dateStr = new Date(sim.timestamp).toLocaleString();
-        const target = sim.asteroid_name || 'Hypothetical';
-        
-        const option = document.createElement('option');
-        option.value = i;
-        option.innerText = `[${dateStr}] Target: ${target} — Yield: ${sim.threat_level}`;
-        selector.appendChild(option);
-    }
+    const dateSelector = document.getElementById('date-selector');
+    const asteroidSelector = document.getElementById('asteroid-selector');
     
-    selector.disabled = false;
-    selector.addEventListener('change', (e) => {
+    dateSelector.innerHTML = '';
+    asteroidSelector.innerHTML = '';
+
+    // Group simulations by Date (YYYY-MM-DD string prefix of timestamp)
+    const dateGroups = {};
+    simulations.forEach((sim, index) => {
+        // e.g., "2026-04-15" from "2026-04-15T09:32:00.000Z"
+        const dStr = typeof sim.timestamp === 'string' ? sim.timestamp.split('T')[0] : 'Unknown Date';
+        if (!dateGroups[dStr]) dateGroups[dStr] = [];
+        dateGroups[dStr].push({ sim, originalIndex: index });
+    });
+
+    const uniqueDates = Object.keys(dateGroups).sort().reverse(); // Newest first
+
+    if (uniqueDates.length === 0) {
+        dateSelector.innerHTML = '<option>No data</option>';
+        return;
+    }
+
+    // Populate Date Selector
+    uniqueDates.forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d;
+        opt.innerText = `Sim Date: ${d}`;
+        dateSelector.appendChild(opt);
+    });
+
+    dateSelector.disabled = false;
+    asteroidSelector.disabled = false;
+
+    // Handle Date Change -> Populate Asteroids
+    const updateAsteroids = () => {
+        asteroidSelector.innerHTML = '';
+        const selectedDate = dateSelector.value;
+        const targets = dateGroups[selectedDate] || [];
+        
+        targets.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t.originalIndex;
+            const targetName = t.sim.asteroid_name || 'Hypothetical';
+            opt.innerText = `Target: ${targetName} — Yield: ${t.sim.threat_level}`;
+            asteroidSelector.appendChild(opt);
+        });
+
+        // Auto-select first asteroid for that date
+        if (targets.length > 0) {
+            selectSimulationMode(targets[0].originalIndex);
+        }
+    };
+
+    dateSelector.addEventListener('change', updateAsteroids);
+    
+    asteroidSelector.addEventListener('change', (e) => {
         selectSimulationMode(parseInt(e.target.value));
     });
+
+    // Initialize first date
+    updateAsteroids();
 }
 
 function selectSimulationMode(index) {

@@ -84,7 +84,7 @@ def run_fetcher_agent(state: NEOState) -> NEOState:
 
     # ── Execute the custom tool ─────────────────────────────────────
     logging.info("Agent 1 calling tool: fetch_nasa_neo_data")
-    tool_result = fetch_nasa_neo_data(target_date)
+    tool_result = fetch_nasa_neo_data(target_date, state.get("asteroid_index", 0))
 
     # ── Update the Global State ─────────────────────────────────────
     state["raw_api_data"] = tool_result

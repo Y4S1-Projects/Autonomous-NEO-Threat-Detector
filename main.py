@@ -219,9 +219,9 @@ def build_pipeline() -> Any:
 # ═══════════════════════════════════════════════════════════════════════
 
 
-def run_pipeline(target_date: str) -> Dict[str, Any]:
+def run_pipeline(target_date: str, asteroid_index: int = 0) -> Dict[str, Any]:
     """
-    Executes the full AstroGuard pipeline for a given target date.
+    Executes the full AstroGuard pipeline for a given target date and asteroid index.
 
     Creates a clean initial :class:`NEOState`, invokes the compiled
     LangGraph application, and returns the final state containing
@@ -229,11 +229,12 @@ def run_pipeline(target_date: str) -> Dict[str, Any]:
 
     Args:
         target_date: The date to query in ``'YYYY-MM-DD'`` format.
+        asteroid_index: The index of the asteroid to process from the API (0 = largest).
 
     Returns:
         Dict[str, Any]: The completed NEOState with all fields populated.
     """
-    logger.info(f"Pipeline triggered for target date: {target_date}")
+    logger.info(f"Pipeline triggered for target date: {target_date} | Asteroid Index: {asteroid_index}")
 
     # Build the pipeline
     app = build_pipeline()
@@ -241,6 +242,7 @@ def run_pipeline(target_date: str) -> Dict[str, Any]:
     # Create the initial empty state
     initial_state: NEOState = {
         "target_date": target_date,
+        "asteroid_index": asteroid_index,
         "raw_api_data": None,
         "asteroid_name": None,
         "physics_results": None,
@@ -347,11 +349,17 @@ if __name__ == "__main__":
         print("     ollama run phi3")
         sys.exit(1)
 
-    result = run_pipeline(target)
+    map_path = None
+    # Execute the pipeline for the Top 5 largest asteroids for this date
+    print(f"  Initiating Top 5 Threat Assessment...")
+    for idx in range(5):
+        print(f"\n  [Processing Asteroid #{idx + 1}/5]...")
+        result = run_pipeline(target, asteroid_index=idx)
+        if result.get("final_map_path"):
+            map_path = result.get("final_map_path")
 
-    map_path = result.get("final_map_path")
-    if map_path and os.path.exists(str(map_path)):
-        print(f"\n✅ Success! Open the interactive map:")
+    if map_path and "ERROR:" not in str(map_path):
+        print(f"\n✅ Assessment complete! Open your dashboard to view the scenarios:")
         print(f"   {map_path}\n")
     else:
-        print(f"\n❌ Pipeline completed with issues. Check logs/system_run.log\n")
+        print(f"\n❌ Pipeline completed with issues or no valid map path. Check logs/system_run.log\n")
