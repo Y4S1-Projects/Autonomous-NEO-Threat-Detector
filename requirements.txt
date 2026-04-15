@@ -9,6 +9,9 @@ langchain-core
 langchain-ollama
 pydantic
 
+# Environment Variables
+python-dotenv
+
 # Agent 1: NASA API Tooling
 requests
 

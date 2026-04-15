@@ -36,6 +36,12 @@ PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
+# ── Load environment variables from .env file ───────────────────────────
+# This makes NASA_API_KEY (and any future keys) available to all agents
+# via os.getenv() without requiring manual export in the shell.
+from dotenv import load_dotenv  # noqa: E402
+load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
+
 from langgraph.graph import StateGraph, END  # noqa: E402
 from state import NEOState  # noqa: E402
 
