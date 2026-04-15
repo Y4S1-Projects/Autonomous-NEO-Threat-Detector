@@ -417,7 +417,9 @@ class TestLLMAsJudge(unittest.TestCase):
                 from langchain_community.chat_models import ChatOllama
             from langchain_core.messages import HumanMessage
 
-            llm = ChatOllama(model="phi3", temperature=0)
+            llm = ChatOllama(
+                model=os.getenv("OLLAMA_MODEL", "qwen2.5:7b"), temperature=0
+            )
             llm.invoke([HumanMessage(content="ping")])
             cls.ollama_available = True
             cls.llm = llm

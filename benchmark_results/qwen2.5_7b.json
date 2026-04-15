@@ -1,0 +1,49 @@
+{
+	"model": "qwen2.5:7b",
+	"timestamp": "2026-04-15T12:26:31.850939",
+	"average_score": 100.0,
+	"total_time_seconds": 70.85,
+	"avg_latency_seconds": 17.71,
+	"tests": [
+		{
+			"test": "Format Adherence (JSON Output)",
+			"score": 100,
+			"time_seconds": 30.4,
+			"output": "{\"mass_kg\": 1481537.5, \"kinetic_energy_joules\": 169372567500}",
+			"notes": [
+				"Valid JSON: YES",
+				"Has mass key: YES",
+				"Has energy key: YES",
+				"No markdown pollution: CLEAN",
+				"No conversational fluff: CLEAN"
+			]
+		},
+		{
+			"test": "RAG Comprehension (Threat Classification)",
+			"score": 100,
+			"time_seconds": 14.22,
+			"output": "HIGH",
+			"notes": ["Single word output: YES", "Correct classification: HIGH (CORRECT)"]
+		},
+		{
+			"test": "Anti-Hallucination (Verification)",
+			"score": 100,
+			"time_seconds": 13.9,
+			"output": "Threat Level: MODERATE, Blast Radius: 50 km, File: simulation_latest.html.",
+			"notes": [
+				"Under 60 words: YES (9 words)",
+				"Mentions MODERATE: YES",
+				"Mentions 50 km: YES",
+				"Mentions output file: YES",
+				"No hallucinations detected: CLEAN"
+			]
+		},
+		{
+			"test": "Tool Instruction Following",
+			"score": 100,
+			"time_seconds": 12.33,
+			"output": "Calling fetch_nasa_neo_data tool for 2026-04-15.",
+			"notes": ["Mentions tool usage: YES", "Mentions target date: YES", "No fabricated data: CLEAN"]
+		}
+	]
+}

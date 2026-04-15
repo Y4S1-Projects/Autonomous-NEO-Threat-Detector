@@ -1,0 +1,49 @@
+{
+	"model": "llama3.1",
+	"timestamp": "2026-04-15T12:24:49.718321",
+	"average_score": 100.0,
+	"total_time_seconds": 76.01,
+	"avg_latency_seconds": 19.0,
+	"tests": [
+		{
+			"test": "Format Adherence (JSON Output)",
+			"score": 100,
+			"time_seconds": 32.14,
+			"output": "{\n    \"mass_kg\": 1.134e+13,\n    \"kinetic_energy_joules\": 4.956e+16\n}",
+			"notes": [
+				"Valid JSON: YES",
+				"Has mass key: YES",
+				"Has energy key: YES",
+				"No markdown pollution: CLEAN",
+				"No conversational fluff: CLEAN"
+			]
+		},
+		{
+			"test": "RAG Comprehension (Threat Classification)",
+			"score": 100,
+			"time_seconds": 14.88,
+			"output": "HIGH",
+			"notes": ["Single word output: YES", "Correct classification: HIGH (CORRECT)"]
+		},
+		{
+			"test": "Anti-Hallucination (Verification)",
+			"score": 100,
+			"time_seconds": 17.03,
+			"output": "The geospatial rendering verification engine reports that the threat level is moderate and the blast radius is 50 kilometers, as indicated in the file \"simulation_latest.html\".",
+			"notes": [
+				"Under 60 words: YES (25 words)",
+				"Mentions MODERATE: YES",
+				"Mentions 50 km: YES",
+				"Mentions output file: YES",
+				"No hallucinations detected: CLEAN"
+			]
+		},
+		{
+			"test": "Tool Instruction Following",
+			"score": 100,
+			"time_seconds": 11.96,
+			"output": "Calling fetch_nasa_neo_data tool for 2026-04-15.",
+			"notes": ["Mentions tool usage: YES", "Mentions target date: YES", "No fabricated data: CLEAN"]
+		}
+	]
+}

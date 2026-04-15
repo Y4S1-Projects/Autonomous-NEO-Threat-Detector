@@ -176,7 +176,9 @@ def run_modeler_agent(state: NEOState) -> NEOState:
     llm_summary = None
     if OLLAMA_AVAILABLE and tool_success:
         try:
-            llm = ChatOllama(model="phi3", temperature=0)
+            llm = ChatOllama(
+                model=os.getenv("OLLAMA_MODEL", "qwen2.5:7b"), temperature=0
+            )
 
             system_msg = SystemMessage(content=SYSTEM_PROMPT)
             human_msg = HumanMessage(
