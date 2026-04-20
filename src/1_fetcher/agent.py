@@ -59,7 +59,9 @@ def run_fetcher_agent(state: NEOState) -> NEOState:
     # ── LLM Integration (verify intent, not generate data) ──────────
     if OLLAMA_AVAILABLE:
         try:
-            llm = ChatOllama(model="phi3", temperature=0)
+            llm = ChatOllama(
+                model=os.getenv("OLLAMA_MODEL", "qwen2.5:7b"), temperature=0
+            )
             system_prompt = SystemMessage(
                 content=(
                     "You are a strict data retrieval engineer for planetary defense. "
@@ -82,7 +84,7 @@ def run_fetcher_agent(state: NEOState) -> NEOState:
 
     # ── Execute the custom tool ─────────────────────────────────────
     logging.info("Agent 1 calling tool: fetch_nasa_neo_data")
-    tool_result = fetch_nasa_neo_data(target_date)
+    tool_result = fetch_nasa_neo_data(target_date, state.get("asteroid_index", 0))
 
     # ── Update the Global State ─────────────────────────────────────
     state["raw_api_data"] = tool_result

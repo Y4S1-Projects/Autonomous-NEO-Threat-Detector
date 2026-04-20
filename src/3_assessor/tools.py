@@ -4,6 +4,32 @@ import logging
 from typing import Dict
 
 
+def _estimate_blast_radius_km(energy_joules: float) -> float:
+    """
+    Estimate blast radius from kinetic energy using a cube-root scaling law.
+
+    Formula:
+        radius_km = 2.0 * (yield_megatons)^(1/3)
+        where yield_megatons = energy_joules / 4.184e15
+
+    This keeps radii physically responsive to each asteroid's unique
+    kinetic energy while remaining stable for visualization.
+    """
+    try:
+        e = float(energy_joules)
+    except (TypeError, ValueError):
+        return 1.0
+
+    if e <= 0:
+        return 1.0
+
+    yield_megatons = e / 4.184e15
+    radius_km = 2.0 * (yield_megatons ** (1.0 / 3.0))
+
+    # Clamp to avoid unrealistic extremes in rendering.
+    return round(max(1.0, min(radius_km, 2000.0)), 2)
+
+
 def query_vector_memory(energy_joules: float) -> Dict[str, str]:
     """
     Queries a local ChromaDB vector database to find the closest historical
@@ -63,8 +89,11 @@ def query_vector_memory(energy_joules: float) -> Dict[str, str]:
     parts = [p.strip() for p in best_match_text.split("|")]
 
     threat = parts[1].split(":")[1].strip()
-    radius_km = float(parts[2].split(":")[1].replace("km", "").strip())
     context = parts[3].strip()
+
+    # Blast radius must be asteroid-specific from actual kinetic energy,
+    # not inherited from historical text snippets.
+    radius_km = _estimate_blast_radius_km(energy_joules)
 
     return {
         "threat_level": threat,

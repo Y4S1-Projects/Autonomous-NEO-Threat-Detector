@@ -77,6 +77,7 @@ class NEOState(TypedDict):
 
     # ── User Input ──────────────────────────────────────────────────────
     target_date: str
+    asteroid_index: int
 
     # ── Agent 1: Telemetry Fetcher ──────────────────────────────────────
     raw_api_data: Optional[Dict[str, Any]]
@@ -92,6 +93,7 @@ class NEOState(TypedDict):
 
     # ── Agent 4: Geospatial Synthesizer ─────────────────────────────────
     final_map_path: Optional[str]
+    estimated_affected_population: Optional[int]
 
     # ── Cross-Cutting Observability ─────────────────────────────────────
     errors: List[str]

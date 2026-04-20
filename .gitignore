@@ -5,7 +5,6 @@ __pycache__/
 *.pyc
 
 # Local Data & Logs
-data/output_maps/*.html
 data/vector_db/
 logs/*.log
 
