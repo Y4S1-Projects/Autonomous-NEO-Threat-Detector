@@ -25,13 +25,9 @@ import logging
 
 # ── Fix encoding for Windows cp1252 consoles ────────────────────────
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
-    sys.stdout = io.TextIOWrapper(
-        sys.stdout.buffer, encoding="utf-8", errors="replace"
-    )
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 if sys.stderr.encoding and sys.stderr.encoding.lower() != "utf-8":
-    sys.stderr = io.TextIOWrapper(
-        sys.stderr.buffer, encoding="utf-8", errors="replace"
-    )
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
 # ── Ensure project root is on the path ──────────────────────────────
 _PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -42,13 +38,17 @@ if _PROJECT_ROOT not in sys.path:
 import importlib
 import importlib.util
 
+
 def _dynamic_import(module_name, file_path):
     """Import a module from a file path (handles numeric-prefix dirs)."""
     spec = importlib.util.spec_from_file_location(module_name, file_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Could not load module spec for {file_path}")
     mod = importlib.util.module_from_spec(spec)
     sys.modules[module_name] = mod
     spec.loader.exec_module(mod)
     return mod
+
 
 _tools_path = os.path.join(_PROJECT_ROOT, "src", "4_modeler", "tools.py")
 _tools_mod = _dynamic_import("_modeler_tools", _tools_path)
@@ -56,9 +56,7 @@ _tools_mod = _dynamic_import("_modeler_tools", _tools_path)
 # Pull out needed symbols
 generate_impact_map = _tools_mod.generate_impact_map
 _get_threat_style = _tools_mod._get_threat_style
-_select_impact_coordinate = _tools_mod._select_impact_coordinate
 _haversine_distance = _tools_mod._haversine_distance
-_estimate_affected_population = _tools_mod._estimate_affected_population
 
 # Import the validation function from agent
 try:
@@ -76,13 +74,17 @@ except Exception:
 
 _TEST_RADIUS = 50.0
 _TEST_THREAT = "MODERATE"
-_TEST_CONTEXT = "Similar to the 1908 Tunguska event which flattened 2,000 km2 of forest."
+_TEST_CONTEXT = (
+    "Similar to the 1908 Tunguska event which flattened 2,000 km2 of forest."
+)
 _TEST_ASTEROID = "(2024 YR4)"
 
 
 def _get_latest_history_entry():
     """Retrieve the latest appended JSON record from the database."""
-    history_path = os.path.join(_PROJECT_ROOT, "data", "output_maps", "simulation_history.json")
+    history_path = os.path.join(
+        _PROJECT_ROOT, "data", "output_maps", "simulation_history.json"
+    )
     if not os.path.exists(history_path):
         return None
     with open(history_path, "r", encoding="utf-8") as f:
@@ -105,17 +107,27 @@ class TestGenerateImpactMap(unittest.TestCase):
             historical_context=_TEST_CONTEXT,
             asteroid_name=_TEST_ASTEROID,
         )
-        self.assertTrue(path.endswith("index.html"), f"Expected index.html path, got: {path}")
-        
+        self.assertTrue(
+            path.endswith("index.html"), f"Expected index.html path, got: {path}"
+        )
+        self.assertIsNone(pop_data)
+
         latest = _get_latest_history_entry()
         self.assertIsNotNone(latest)
+        assert latest is not None
         self.assertEqual(latest["threat_level"], _TEST_THREAT)
         self.assertEqual(latest["radius_km"], _TEST_RADIUS)
+        self.assertIsNone(latest["impact_lat"])
+        self.assertIsNone(latest["impact_lon"])
         print(f"[PASS] MODERATE simulation appended to JSON.")
 
     def test_successful_map_generation_high(self):
-        generate_impact_map(1000.0, "HIGH", "Comparable to the Chicxulub impactor.", "(Planet Killer)")
+        generate_impact_map(
+            1000.0, "HIGH", "Comparable to the Chicxulub impactor.", "(Planet Killer)"
+        )
         latest = _get_latest_history_entry()
+        self.assertIsNotNone(latest)
+        assert latest is not None
         self.assertEqual(latest["threat_level"], "HIGH")
         print(f"[PASS] HIGH threat mapped and appended to JSON.")
 
@@ -129,6 +141,8 @@ class TestEdgeCases(unittest.TestCase):
     def test_zero_radius_is_clamped(self):
         generate_impact_map(0.0, "LOW", "Test context.")
         latest = _get_latest_history_entry()
+        self.assertIsNotNone(latest)
+        assert latest is not None
         self.assertEqual(latest["radius_km"], 1.0)
         print("[PASS] Zero radius clamped to 1.0 km.")
 
@@ -147,30 +161,17 @@ class TestHelperFunctions(unittest.TestCase):
             self.assertIn("icon_color", style)
         print("[PASS] Threat style lookup validated for all levels.")
 
-    def test_impact_coordinate_selection(self):
-        lat, lon, name = _select_impact_coordinate()
-        self.assertTrue(-90 <= lat <= 90)
-        self.assertTrue(-180 <= lon <= 180)
-        print("[PASS] Coordinate selection produces valid geographic data.")
-
 
 # ═══════════════════════════════════════════════════════════════════════
-# 5. Population Impact Tests
+# 5. Utility Math Tests
 # ═══════════════════════════════════════════════════════════════════════
 
 
-class TestPopulationImpact(unittest.TestCase):
+class TestUtilityMath(unittest.TestCase):
     def test_haversine_london_to_paris(self):
         dist = _haversine_distance(51.5074, -0.1278, 48.8566, 2.3522)
         self.assertAlmostEqual(dist, 344, delta=5)
         print(f"[PASS] Haversine London-Paris: {dist:.1f} km (expected ~344)")
-
-    def test_population_near_tokyo(self):
-        result = _estimate_affected_population(35.6762, 139.6503, 200.0)
-        self.assertGreater(result["total_affected"], 0)
-        city_names = [c["name"] for c in result["cities_in_range"]]
-        self.assertIn("Tokyo", city_names)
-        print("[PASS] Population near Tokyo validated.")
 
 
 # ═══════════════════════════════════════════════════════════════════════

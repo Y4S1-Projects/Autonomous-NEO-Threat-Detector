@@ -127,13 +127,14 @@ def _validate_map_output(
             latest = data[-1]
             if str(latest.get("threat_level", "")).upper() != expected_threat.upper():
                 issues.append(f"Last record threat_level mismatch.")
-            
+
             radius = float(latest.get("radius_km", 0))
             if abs(radius - expected_radius) > 0.1:
                 issues.append(f"Last record blast radius mismatch.")
 
+            # Population is now computed on-demand after user picks ground zero.
             if "population_data" not in latest:
-                issues.append("Missing population data object.")
+                issues.append("Missing population_data field in record.")
 
     except Exception as exc:
         issues.append(f"Could not parse JSON file for validation: {exc}")
@@ -269,19 +270,7 @@ def run_modeler_agent(state: NEOState) -> NEOState:
                 model=os.getenv("OLLAMA_MODEL", "qwen2.5:7b"), temperature=0
             )
 
-            pop_info = ""
-            if pop_data and pop_data.get("total_affected", 0) > 0:
-                top_cities = ", ".join(
-                    f"{c['name']} ({c['population']:,})"
-                    for c in pop_data["cities_in_range"][:3]
-                )
-                pop_info = (
-                    f"- Population at Risk: {pop_data['total_affected']:,}\n"
-                    f"- Cities Affected: {pop_data['cities_count']}\n"
-                    f"- Nearest Cities: {top_cities}\n"
-                )
-            else:
-                pop_info = "- Population at Risk: 0 (ocean/remote impact)\n"
+            pop_info = "- Population at Risk: computed interactively after user selects location\n"
 
             system_msg = SystemMessage(content=SYSTEM_PROMPT)
             human_msg = HumanMessage(
@@ -298,7 +287,11 @@ def run_modeler_agent(state: NEOState) -> NEOState:
             )
 
             response = llm.invoke([system_msg, human_msg])
-            llm_summary = response.content.strip()
+            content = response.content
+            if isinstance(content, str):
+                llm_summary = content.strip()
+            else:
+                llm_summary = str(content)
             logging.info(f"Agent 4 LLM verification: {llm_summary}")
 
         except Exception as exc:

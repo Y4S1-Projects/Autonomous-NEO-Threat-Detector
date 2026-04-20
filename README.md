@@ -15,19 +15,19 @@ AstroGuard is an autonomous pipeline that monitors Near-Earth Objects (NEOs) and
 1. **Fetches** live asteroid telemetry from NASA's NeoWs API
 2. **Computes** theoretical impact physics using first-principles calculations
 3. **Retrieves** historical impact context using a local ChromaDB vector database (RAG)
-4. **Visualizes** the results as an interactive geospatial map with Folium
+4. **Visualizes** the results as an interactive geospatial map where users click a ground-zero point to simulate local human impact
 
 ### Technology Stack
 
-| Component | Technology | Purpose |
-|-----------|-----------|---------|
-| LLM Engine | Ollama (local SLM) | Agent reasoning & verification |
-| Orchestrator | LangGraph | State graph pipeline management |
-| API Data | NASA NeoWs | Live asteroid telemetry |
-| Vector DB | ChromaDB | Local RAG for historical impacts |
-| Visualization | Folium / Leaflet.js | Interactive HTML map rendering |
-| Env Config | python-dotenv | Centralized environment management |
-| Observability | Python logging | Structured execution tracing |
+| Component     | Technology          | Purpose                            |
+| ------------- | ------------------- | ---------------------------------- |
+| LLM Engine    | Ollama (local SLM)  | Agent reasoning & verification     |
+| Orchestrator  | LangGraph           | State graph pipeline management    |
+| API Data      | NASA NeoWs          | Live asteroid telemetry            |
+| Vector DB     | ChromaDB            | Local RAG for historical impacts   |
+| Visualization | Folium / Leaflet.js | Interactive HTML map rendering     |
+| Env Config    | python-dotenv       | Centralized environment management |
+| Observability | Python logging      | Structured execution tracing       |
 
 ---
 
@@ -53,7 +53,7 @@ User Input (date)
 |  Agent 3: Semantic   |  -- Queries ChromaDB (RAG) for
 |  RAG Assessor        |     historical impact context
 +----------+-----------+     Tool: query_vector_memory()
-           | threat_level, blast_radius_km, historical_context
+           | threat_level, blast_radius_km (energy-derived), historical_context
            v
 +----------------------+
 |  Agent 4: Geospatial |  -- Renders interactive Folium
@@ -74,11 +74,11 @@ All agents share a single `NEOState` dictionary managed by LangGraph. Each agent
 
 ### Prerequisites
 
-| Requirement | Version | Check |
-|------------|---------|-------|
-| Python | 3.10+ | `python --version` |
-| Ollama | Latest | [Download](https://ollama.com/) |
-| Git | Any | `git --version` |
+| Requirement | Version | Check                           |
+| ----------- | ------- | ------------------------------- |
+| Python      | 3.10+   | `python --version`              |
+| Ollama      | Latest  | [Download](https://ollama.com/) |
+| Git         | Any     | `git --version`                 |
 
 ### Step 1: Clone & Install Dependencies
 
@@ -140,12 +140,12 @@ We provide a built-in benchmark tool that evaluates each model against the exact
 
 **The benchmark tests 4 criteria:**
 
-| Test | What It Measures | Why It Matters |
-|------|-----------------|----------------|
-| **Format Adherence** | Outputs pure JSON without markdown or explanation | Bad formatting crashes the parser |
-| **RAG Comprehension** | Single-word threat classification from context | Agent 3 needs exact format |
-| **Anti-Hallucination** | Reports only provided data, no invented facts | Core safety requirement |
-| **Tool Instruction** | Acknowledges tool use, doesn't fabricate data | Agent 1 must not guess API data |
+| Test                   | What It Measures                                  | Why It Matters                    |
+| ---------------------- | ------------------------------------------------- | --------------------------------- |
+| **Format Adherence**   | Outputs pure JSON without markdown or explanation | Bad formatting crashes the parser |
+| **RAG Comprehension**  | Single-word threat classification from context    | Agent 3 needs exact format        |
+| **Anti-Hallucination** | Reports only provided data, no invented facts     | Core safety requirement           |
+| **Tool Instruction**   | Acknowledges tool use, doesn't fabricate data     | Agent 1 must not guess API data   |
 
 **Run the benchmark for each model (one at a time due to RAM):**
 
@@ -172,13 +172,14 @@ python benchmark.py --compare
 
 We systematically tested three models. Results are saved in `benchmark_results/`:
 
-| Model | Avg Score | Avg Latency | Format | RAG | Hallucination | Tool |
-|-------|-----------|-------------|--------|-----|---------------|------|
-| **qwen2.5:7b** | **100/100** | **17.71s** | 100 | 100 | 100 | 100 |
-| llama3.1 | 100/100 | 19.00s | 100 | 100 | 100 | 100 |
-| phi3 | 72.5/100 | 20.95s | 20 | 70 | 100 | 100 |
+| Model          | Avg Score   | Avg Latency | Format | RAG | Hallucination | Tool |
+| -------------- | ----------- | ----------- | ------ | --- | ------------- | ---- |
+| **qwen2.5:7b** | **100/100** | **17.71s**  | 100    | 100 | 100           | 100  |
+| llama3.1       | 100/100     | 19.00s      | 100    | 100 | 100           | 100  |
+| phi3           | 72.5/100    | 20.95s      | 20     | 70  | 100           | 100  |
 
 **Selected Model: `qwen2.5:7b`**
+
 - Perfect accuracy (100/100) — tied with llama3.1
 - Fastest inference (17.71s avg) — 7% faster than llama3.1
 - phi3 failed format adherence (wrapped JSON in markdown fences) and RAG comprehension (added extra explanation text instead of a single word)
@@ -226,12 +227,14 @@ python main.py --date 2026-04-15
 
 ### Output
 
-| Artifact | Location | Description |
-|----------|----------|-------------|
-| Execution Log | `logs/system_run.log` | Agent activations, tool calls, state transitions, timing |
-| Impact Map | `data/output_maps/simulation_latest.html` | Interactive Leaflet.js visualization |
+| Artifact      | Location                                  | Description                                              |
+| ------------- | ----------------------------------------- | -------------------------------------------------------- |
+| Execution Log | `logs/system_run.log`                     | Agent activations, tool calls, state transitions, timing |
+| Impact Map    | `data/output_maps/simulation_latest.html` | Interactive Leaflet.js visualization                     |
 
 Open the HTML map in any browser to explore the blast zones, threat legend, and historical context popup.
+
+Population impact is now computed after you click a location on the map. The UI uses the selected asteroid's blast radius and combines a NASA SEDAC population-density heatmap overlay with live/free settlement population lookup (Overpass API) for better land-area realism than fixed predefined cities.
 
 ---
 
@@ -256,14 +259,14 @@ python tests/test_harness.py
 
 ### Test Coverage (Module 4)
 
-| Category | Count | Description |
-|----------|-------|-------------|
-| Happy Path | 3 | LOW, MODERATE, HIGH threat level map generation |
-| Edge Cases | 5 | Negative/zero/tiny/huge radius, invalid types, unknown threat levels |
-| Content Validation | 3 | HTML structure, data embedding, file size bounds |
-| Helper Functions | 4 | Zoom scaling, style lookup, coordinate selection, popup builder |
-| LLM-as-a-Judge | 2 | Accuracy evaluation + mismatch detection via Ollama |
-| **Total** | **19** | **All passing** |
+| Category           | Count  | Description                                                          |
+| ------------------ | ------ | -------------------------------------------------------------------- |
+| Happy Path         | 3      | LOW, MODERATE, HIGH threat level map generation                      |
+| Edge Cases         | 5      | Negative/zero/tiny/huge radius, invalid types, unknown threat levels |
+| Content Validation | 3      | HTML structure, data embedding, file size bounds                     |
+| Helper Functions   | 4      | Zoom scaling, style lookup, coordinate selection, popup builder      |
+| LLM-as-a-Judge     | 2      | Accuracy evaluation + mismatch detection via Ollama                  |
+| **Total**          | **19** | **All passing**                                                      |
 
 ### LLM-as-a-Judge Pattern
 
@@ -325,18 +328,18 @@ Autonomous-NEO-Threat-Detector/
 
 All configuration is centralized in the `.env` file:
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `NASA_API_KEY` | Yes | `DEMO_KEY` | NASA NeoWs API key ([get one free](https://api.nasa.gov/)) |
-| `OLLAMA_MODEL` | No | `qwen2.5:7b` | Ollama model name for all agents |
+| Variable       | Required | Default      | Description                                                |
+| -------------- | -------- | ------------ | ---------------------------------------------------------- |
+| `NASA_API_KEY` | Yes      | `DEMO_KEY`   | NASA NeoWs API key ([get one free](https://api.nasa.gov/)) |
+| `OLLAMA_MODEL` | No       | `qwen2.5:7b` | Ollama model name for all agents                           |
 
 ---
 
 ## Team Contributions
 
-| Agent | Custom Tool | Key Responsibility |
-|-------|-------------|-------------------|
-| Telemetry Fetcher | `fetch_nasa_neo_data()` | Live NASA API integration |
-| Trajectory Analyst | `calculate_kinetic_energy()` | First-principles physics |
-| Semantic RAG Assessor | `query_vector_memory()` | ChromaDB vector search |
-| Geospatial Synthesizer | `generate_impact_map()` | Interactive Folium map + LLM verification |
+| Agent                  | Custom Tool                  | Key Responsibility                        |
+| ---------------------- | ---------------------------- | ----------------------------------------- |
+| Telemetry Fetcher      | `fetch_nasa_neo_data()`      | Live NASA API integration                 |
+| Trajectory Analyst     | `calculate_kinetic_energy()` | First-principles physics                  |
+| Semantic RAG Assessor  | `query_vector_memory()`      | ChromaDB vector search                    |
+| Geospatial Synthesizer | `generate_impact_map()`      | Interactive Folium map + LLM verification |
