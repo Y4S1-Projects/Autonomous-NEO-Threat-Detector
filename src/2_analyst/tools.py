@@ -1,14 +1,16 @@
 import math
 import logging
 from typing import Dict
+from langchain_core.tools import tool
 
 
+@tool
 def calculate_kinetic_energy(
     diameter_meters: float, velocity_kms: float
 ) -> Dict[str, float]:
     """
     Calculates the mass and kinetic energy of a Near-Earth Object based on first principles.
-
+    
     Assumes the asteroid is roughly spherical and composed of standard
     stony chondrite material with a density of 3000 kg/m^3.
 
