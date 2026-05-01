@@ -56,12 +56,14 @@ def fetch_nasa_neo_data(target_date: str, asteroid_index: int = 0) -> Dict[str, 
 
         sanitized_data = {
             "name": target_asteroid.get("name"),
-            "estimated_diameter_meters": target_asteroid["estimated_diameter"][
-                "meters"
-            ]["estimated_diameter_max"],
-            "relative_velocity_kms": target_asteroid["close_approach_data"][0][
-                "relative_velocity"
-            ]["kilometers_per_second"],
+            "estimated_diameter_meters": float(
+                target_asteroid["estimated_diameter"]["meters"]["estimated_diameter_max"]
+            ),
+            "relative_velocity_kms": float(
+                target_asteroid["close_approach_data"][0]["relative_velocity"][
+                    "kilometers_per_second"
+                ]
+            ),
         }
 
         return sanitized_data

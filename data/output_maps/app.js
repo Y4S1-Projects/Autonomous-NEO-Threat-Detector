@@ -27,6 +27,103 @@ document.addEventListener("DOMContentLoaded", () => {
 	fetchData();
 });
 
+/**
+ * Hardcoded fallback coordinates for common cities.
+ * Used when the Nominatim API is unavailable or slow.
+ */
+const CITY_FALLBACK = {
+	"london":        [51.5074, -0.1278],
+	"new york":      [40.7128, -74.0060],
+	"tokyo":         [35.6762, 139.6503],
+	"paris":         [48.8566, 2.3522],
+	"sydney":        [-33.8688, 151.2093],
+	"mumbai":        [19.0760, 72.8777],
+	"beijing":       [39.9042, 116.4074],
+	"moscow":        [55.7558, 37.6173],
+	"dubai":         [25.2048, 55.2708],
+	"los angeles":   [34.0522, -118.2437],
+	"chicago":       [41.8781, -87.6298],
+	"singapore":     [1.3521, 103.8198],
+	"seoul":         [37.5665, 126.9780],
+	"cairo":         [30.0444, 31.2357],
+	"lagos":         [6.5244, 3.3792],
+	"jakarta":       [-6.2088, 106.8456],
+	"sao paulo":     [-23.5505, -46.6333],
+	"mexico city":   [19.4326, -99.1332],
+	"colombo":       [6.9271, 79.8612],
+	"delhi":         [28.6139, 77.2090],
+	"istanbul":      [41.0082, 28.9784],
+	"berlin":        [52.5200, 13.4050],
+	"toronto":       [43.6532, -79.3832],
+	"johannesburg":  [-26.2041, 28.0473],
+	"nairobi":       [-1.2921, 36.8219],
+};
+
+/**
+ * City Search — tries Nominatim first, falls back to hardcoded list.
+ * Flies the map to the matched city and auto-triggers an impact simulation.
+ */
+async function searchCity() {
+	const input = document.getElementById("city-search-input");
+	const status = document.getElementById("city-search-status");
+	const query = input.value.trim();
+	if (!query) return;
+
+	status.style.color = "#FFC107";
+	status.innerText = "⏳ Searching...";
+
+	// 1. Check hardcoded fallback first (instant)
+	const key = query.toLowerCase();
+	const fallback = CITY_FALLBACK[key];
+	if (fallback) {
+		_flyAndSimulate(L.latLng(fallback[0], fallback[1]), query, status);
+		return;
+	}
+
+	// 2. Try Nominatim API with a 6-second timeout
+	try {
+		const controller = new AbortController();
+		const timer = setTimeout(() => controller.abort(), 6000);
+
+		const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`;
+		const resp = await fetch(url, {
+			signal: controller.signal,
+			headers: { "Accept-Language": "en" },
+		});
+		clearTimeout(timer);
+
+		const results = await resp.json();
+
+		if (!results || results.length === 0) {
+			status.style.color = "#FF5252";
+			status.innerText = `❌ No results for "${query}". Try another city name.`;
+			return;
+		}
+
+		const { lat, lon, display_name } = results[0];
+		const shortName = display_name.split(",").slice(0, 2).join(",");
+		_flyAndSimulate(L.latLng(parseFloat(lat), parseFloat(lon)), shortName, status);
+
+	} catch (err) {
+		status.style.color = "#FF5252";
+		if (err.name === "AbortError") {
+			status.innerText = "❌ Search timed out. Try: London, Tokyo, New York...";
+		} else {
+			status.innerText = "❌ Search failed. Check your connection.";
+		}
+	}
+}
+
+/** Shared: fly map to latlng, update status, then auto-simulate impact. */
+function _flyAndSimulate(latlng, name, status) {
+	map.flyTo(latlng, 8, { animate: true, duration: 1.2 });
+	status.style.color = "#4CAF50";
+	status.innerText = `✅ Found: ${name} — simulating impact...`;
+	setTimeout(() => {
+		handleMapClick({ latlng });
+	}, 1400);
+}
+
 function initMap() {
 	// 1. Initialize map container
 	map = L.map("map", {

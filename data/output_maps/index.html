@@ -232,6 +232,41 @@
             <p class="metric-desc" id="ui-relative-desc">Casualty estimates based on populated areas within the selected blast radius.</p>
         </div>
 
+        <!-- City Search -->
+        <div style="display: flex; gap: 6px; margin-top: 10px;">
+            <input
+                id="city-search-input"
+                type="text"
+                placeholder="🔍 Search city (e.g. London, Tokyo)..."
+                style="
+                    flex: 1;
+                    padding: 8px 10px;
+                    background: #0d1117;
+                    color: #fff;
+                    border: 1px solid #444;
+                    border-radius: 4px;
+                    font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+                    font-size: 13px;
+                    outline: none;
+                "
+                onkeydown="if(event.key==='Enter') searchCity()"
+            />
+            <button
+                onclick="searchCity()"
+                style="
+                    padding: 8px 14px;
+                    background: #FFC107;
+                    color: #000;
+                    border: none;
+                    border-radius: 4px;
+                    font-weight: bold;
+                    font-size: 13px;
+                    cursor: pointer;
+                "
+            >Go</button>
+        </div>
+        <p id="city-search-status" style="margin: 4px 0 0 0; font-size: 11px; color: #90A4AE; min-height: 14px;"></p>
+
         <p class="pulse-text" id="ui-prompt">
             📍 Click ANYWHERE on the map to run a simulation at that target!
         </p>
